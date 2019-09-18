@@ -3,7 +3,7 @@
 # dependencies are already installed. However, it may also be built from source.
 
 # Step 1: In this repository,
-# `git clone -b v0.2.6 https://github.com/MikaelSlevinsky/FastTransforms.git deps/FastTransforms`
+# `git clone -b v0.2.7 https://github.com/MikaelSlevinsky/FastTransforms.git deps/FastTransforms`
 
 # Step 2: Get the dependencies. On macOS, run `brew install gcc@8 fftw mpfr`.
 # On linux, run `apt-get gcc-8 libblas-dev libopenblas-base libfftw3-dev libmpfr-dev`.
@@ -219,6 +219,7 @@ for f in (:leg2cheb, :cheb2leg, :ultra2ultra, :jac2jac,
     plan_f = Symbol("plan_", f)
     @eval begin
         $plan_f(x::AbstractArray{T}, y...; z...) where T = $plan_f(T, size(x, 1), y...; z...)
+        $plan_f(::Type{Complex{T}}, y...; z...) where T <: Real = $plan_f(T, y...; z...)
         $f(x::AbstractArray, y...; z...) = $plan_f(x, y...; z...)*x
     end
 end
@@ -242,47 +243,47 @@ function plan_cheb2leg(::Type{Float32}, n::Integer; normcheb::Bool=false, normle
     return FTPlan{Float32, 1, CHEB2LEG}(plan, n)
 end
 
-function plan_ultra2ultra(::Type{Float32}, n::Integer, λ::Float32, μ::Float32; norm1::Bool=false, norm2::Bool=false)
+function plan_ultra2ultra(::Type{Float32}, n::Integer, λ, μ; norm1::Bool=false, norm2::Bool=false)
     plan = ccall((:ft_plan_ultraspherical_to_ultrasphericalf, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Float32, Float32), norm1, norm2, n, λ, μ)
     return FTPlan{Float32, 1, ULTRA2ULTRA}(plan, n)
 end
 
-function plan_jac2jac(::Type{Float32}, n::Integer, α::Float32, β::Float32, γ::Float32, δ::Float32; norm1::Bool=false, norm2::Bool=false)
+function plan_jac2jac(::Type{Float32}, n::Integer, α, β, γ, δ; norm1::Bool=false, norm2::Bool=false)
     plan = ccall((:ft_plan_jacobi_to_jacobif, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Float32, Float32, Float32, Float32), norm1, norm2, n, α, β, γ, δ)
     return FTPlan{Float32, 1, JAC2JAC}(plan, n)
 end
 
-function plan_lag2lag(::Type{Float32}, n::Integer, α::Float32, β::Float32; norm1::Bool=false, norm2::Bool=false)
+function plan_lag2lag(::Type{Float32}, n::Integer, α, β; norm1::Bool=false, norm2::Bool=false)
     plan = ccall((:ft_plan_laguerre_to_laguerref, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Float32, Float32), norm1, norm2, n, α, β)
     return FTPlan{Float32, 1, LAG2LAG}(plan, n)
 end
 
-function plan_jac2ultra(::Type{Float32}, n::Integer, α::Float32, β::Float32, λ::Float32; normjac::Bool=false, normultra::Bool=false)
+function plan_jac2ultra(::Type{Float32}, n::Integer, α, β, λ; normjac::Bool=false, normultra::Bool=false)
     plan = ccall((:ft_plan_jacobi_to_ultrasphericalf, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Float32, Float32, Float32), normjac, normultra, n, α, β, λ)
     return FTPlan{Float32, 1, JAC2ULTRA}(plan, n)
 end
 
-function plan_ultra2jac(::Type{Float32}, n::Integer, λ::Float32, α::Float32, β::Float32; normultra::Bool=false, normjac::Bool=false)
+function plan_ultra2jac(::Type{Float32}, n::Integer, λ, α, β; normultra::Bool=false, normjac::Bool=false)
     plan = ccall((:ft_plan_ultraspherical_to_jacobif, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Float32, Float32, Float32), normultra, normjac, n, λ, α, β)
     return FTPlan{Float32, 1, ULTRA2JAC}(plan, n)
 end
 
-function plan_jac2cheb(::Type{Float32}, n::Integer, α::Float32, β::Float32; normjac::Bool=false, normcheb::Bool=false)
+function plan_jac2cheb(::Type{Float32}, n::Integer, α, β; normjac::Bool=false, normcheb::Bool=false)
     plan = ccall((:ft_plan_jacobi_to_chebyshevf, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Float32, Float32), normjac, normcheb, n, α, β)
     return FTPlan{Float32, 1, JAC2CHEB}(plan, n)
 end
 
-function plan_cheb2jac(::Type{Float32}, n::Integer, α::Float32, β::Float32; normcheb::Bool=false, normjac::Bool=false)
+function plan_cheb2jac(::Type{Float32}, n::Integer, α, β; normcheb::Bool=false, normjac::Bool=false)
     plan = ccall((:ft_plan_chebyshev_to_jacobif, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Float32, Float32), normcheb, normjac, n, α, β)
     return FTPlan{Float32, 1, CHEB2JAC}(plan, n)
 end
 
-function plan_ultra2cheb(::Type{Float32}, n::Integer, λ::Float32; normultra::Bool=false, normcheb::Bool=false)
+function plan_ultra2cheb(::Type{Float32}, n::Integer, λ; normultra::Bool=false, normcheb::Bool=false)
     plan = ccall((:ft_plan_ultraspherical_to_chebyshevf, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Float32), normultra, normcheb, n, λ)
     return FTPlan{Float32, 1, ULTRA2CHEB}(plan, n)
 end
 
-function plan_cheb2ultra(::Type{Float32}, n::Integer, λ::Float32; normcheb::Bool=false, normultra::Bool=false)
+function plan_cheb2ultra(::Type{Float32}, n::Integer, λ; normcheb::Bool=false, normultra::Bool=false)
     plan = ccall((:ft_plan_chebyshev_to_ultrasphericalf, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Float32), normcheb, normultra, n, λ)
     return FTPlan{Float32, 1, CHEB2ULTRA}(plan, n)
 end
@@ -298,47 +299,47 @@ function plan_cheb2leg(::Type{Float64}, n::Integer; normcheb::Bool=false, normle
     return FTPlan{Float64, 1, CHEB2LEG}(plan, n)
 end
 
-function plan_ultra2ultra(::Type{Float64}, n::Integer, λ::Float64, μ::Float64; norm1::Bool=false, norm2::Bool=false)
+function plan_ultra2ultra(::Type{Float64}, n::Integer, λ, μ; norm1::Bool=false, norm2::Bool=false)
     plan = ccall((:ft_plan_ultraspherical_to_ultraspherical, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Float64, Float64), norm1, norm2, n, λ, μ)
     return FTPlan{Float64, 1, ULTRA2ULTRA}(plan, n)
 end
 
-function plan_jac2jac(::Type{Float64}, n::Integer, α::Float64, β::Float64, γ::Float64, δ::Float64; norm1::Bool=false, norm2::Bool=false)
+function plan_jac2jac(::Type{Float64}, n::Integer, α, β, γ, δ; norm1::Bool=false, norm2::Bool=false)
     plan = ccall((:ft_plan_jacobi_to_jacobi, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Float64, Float64, Float64, Float64), norm1, norm2, n, α, β, γ, δ)
     return FTPlan{Float64, 1, JAC2JAC}(plan, n)
 end
 
-function plan_lag2lag(::Type{Float64}, n::Integer, α::Float64, β::Float64; norm1::Bool=false, norm2::Bool=false)
+function plan_lag2lag(::Type{Float64}, n::Integer, α, β; norm1::Bool=false, norm2::Bool=false)
     plan = ccall((:ft_plan_laguerre_to_laguerre, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Float64, Float64), norm1, norm2, n, α, β)
     return FTPlan{Float64, 1, LAG2LAG}(plan, n)
 end
 
-function plan_jac2ultra(::Type{Float64}, n::Integer, α::Float64, β::Float64, λ::Float64; normjac::Bool=false, normultra::Bool=false)
+function plan_jac2ultra(::Type{Float64}, n::Integer, α, β, λ; normjac::Bool=false, normultra::Bool=false)
     plan = ccall((:ft_plan_jacobi_to_ultraspherical, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Float64, Float64, Float64), normjac, normultra, n, α, β, λ)
     return FTPlan{Float64, 1, JAC2ULTRA}(plan, n)
 end
 
-function plan_ultra2jac(::Type{Float64}, n::Integer, λ::Float64, α::Float64, β::Float64; normultra::Bool=false, normjac::Bool=false)
+function plan_ultra2jac(::Type{Float64}, n::Integer, λ, α, β; normultra::Bool=false, normjac::Bool=false)
     plan = ccall((:ft_plan_ultraspherical_to_jacobi, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Float64, Float64, Float64), normultra, normjac, n, λ, α, β)
     return FTPlan{Float64, 1, ULTRA2JAC}(plan, n)
 end
 
-function plan_jac2cheb(::Type{Float64}, n::Integer, α::Float64, β::Float64; normjac::Bool=false, normcheb::Bool=false)
+function plan_jac2cheb(::Type{Float64}, n::Integer, α, β; normjac::Bool=false, normcheb::Bool=false)
     plan = ccall((:ft_plan_jacobi_to_chebyshev, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Float64, Float64), normjac, normcheb, n, α, β)
     return FTPlan{Float64, 1, JAC2CHEB}(plan, n)
 end
 
-function plan_cheb2jac(::Type{Float64}, n::Integer, α::Float64, β::Float64; normcheb::Bool=false, normjac::Bool=false)
+function plan_cheb2jac(::Type{Float64}, n::Integer, α, β; normcheb::Bool=false, normjac::Bool=false)
     plan = ccall((:ft_plan_chebyshev_to_jacobi, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Float64, Float64), normcheb, normjac, n, α, β)
     return FTPlan{Float64, 1, CHEB2JAC}(plan, n)
 end
 
-function plan_ultra2cheb(::Type{Float64}, n::Integer, λ::Float64; normultra::Bool=false, normcheb::Bool=false)
+function plan_ultra2cheb(::Type{Float64}, n::Integer, λ; normultra::Bool=false, normcheb::Bool=false)
     plan = ccall((:ft_plan_ultraspherical_to_chebyshev, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Float64), normultra, normcheb, n, λ)
     return FTPlan{Float64, 1, ULTRA2CHEB}(plan, n)
 end
 
-function plan_cheb2ultra(::Type{Float64}, n::Integer, λ::Float64; normcheb::Bool=false, normultra::Bool=false)
+function plan_cheb2ultra(::Type{Float64}, n::Integer, λ; normcheb::Bool=false, normultra::Bool=false)
     plan = ccall((:ft_plan_chebyshev_to_ultraspherical, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Float64), normcheb, normultra, n, λ)
     return FTPlan{Float64, 1, CHEB2ULTRA}(plan, n)
 end
@@ -354,47 +355,47 @@ function plan_cheb2leg(::Type{BigFloat}, n::Integer; normcheb::Bool=false, norml
     return FTPlan{BigFloat, 1, CHEB2LEG}(plan, n)
 end
 
-function plan_ultra2ultra(::Type{BigFloat}, n::Integer, λ::BigFloat, μ::BigFloat; norm1::Bool=false, norm2::Bool=false)
+function plan_ultra2ultra(::Type{BigFloat}, n::Integer, λ, μ; norm1::Bool=false, norm2::Bool=false)
     plan = ccall((:ft_mpfr_plan_ultraspherical_to_ultraspherical, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Ref{BigFloat}, Ref{BigFloat}, Clong, Int32), norm1, norm2, n, λ, μ, precision(BigFloat), Base.MPFR.ROUNDING_MODE[])
     return FTPlan{BigFloat, 1, ULTRA2ULTRA}(plan, n)
 end
 
-function plan_jac2jac(::Type{BigFloat}, n::Integer, α::BigFloat, β::BigFloat, γ::BigFloat, δ::BigFloat; norm1::Bool=false, norm2::Bool=false)
+function plan_jac2jac(::Type{BigFloat}, n::Integer, α, β, γ, δ; norm1::Bool=false, norm2::Bool=false)
     plan = ccall((:ft_mpfr_plan_jacobi_to_jacobi, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Ref{BigFloat}, Ref{BigFloat}, Ref{BigFloat}, Ref{BigFloat}, Clong, Int32), norm1, norm2, n, α, β, γ, δ, precision(BigFloat), Base.MPFR.ROUNDING_MODE[])
     return FTPlan{BigFloat, 1, JAC2JAC}(plan, n)
 end
 
-function plan_lag2lag(::Type{BigFloat}, n::Integer, α::BigFloat, β::BigFloat; norm1::Bool=false, norm2::Bool=false)
+function plan_lag2lag(::Type{BigFloat}, n::Integer, α, β; norm1::Bool=false, norm2::Bool=false)
     plan = ccall((:ft_mpfr_plan_laguerre_to_laguerre, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Ref{BigFloat}, Ref{BigFloat}, Clong, Int32), norm1, norm2, n, α, β, precision(BigFloat), Base.MPFR.ROUNDING_MODE[])
     return FTPlan{BigFloat, 1, LAG2LAG}(plan, n)
 end
 
-function plan_jac2ultra(::Type{BigFloat}, n::Integer, α::BigFloat, β::BigFloat, λ::BigFloat; normjac::Bool=false, normultra::Bool=false)
+function plan_jac2ultra(::Type{BigFloat}, n::Integer, α, β, λ; normjac::Bool=false, normultra::Bool=false)
     plan = ccall((:ft_mpfr_plan_jacobi_to_ultraspherical, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Ref{BigFloat}, Ref{BigFloat}, Ref{BigFloat}, Clong, Int32), normjac, normultra, n, α, β, λ, precision(BigFloat), Base.MPFR.ROUNDING_MODE[])
     return FTPlan{BigFloat, 1, JAC2ULTRA}(plan, n)
 end
 
-function plan_ultra2jac(::Type{BigFloat}, n::Integer, λ::BigFloat, α::BigFloat, β::BigFloat; normultra::Bool=false, normjac::Bool=false)
+function plan_ultra2jac(::Type{BigFloat}, n::Integer, λ, α, β; normultra::Bool=false, normjac::Bool=false)
     plan = ccall((:ft_mpfr_plan_ultraspherical_to_jacobi, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Ref{BigFloat}, Ref{BigFloat}, Ref{BigFloat}, Clong, Int32), normultra, normjac, n, λ, α, β, precision(BigFloat), Base.MPFR.ROUNDING_MODE[])
     return FTPlan{BigFloat, 1, ULTRA2JAC}(plan, n)
 end
 
-function plan_jac2cheb(::Type{BigFloat}, n::Integer, α::BigFloat, β::BigFloat; normjac::Bool=false, normcheb::Bool=false)
+function plan_jac2cheb(::Type{BigFloat}, n::Integer, α, β; normjac::Bool=false, normcheb::Bool=false)
     plan = ccall((:ft_mpfr_plan_jacobi_to_chebyshev, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Ref{BigFloat}, Ref{BigFloat}, Clong, Int32), normjac, normcheb, n, α, β, precision(BigFloat), Base.MPFR.ROUNDING_MODE[])
     return FTPlan{BigFloat, 1, JAC2CHEB}(plan, n)
 end
 
-function plan_cheb2jac(::Type{BigFloat}, n::Integer, α::BigFloat, β::BigFloat; normcheb::Bool=false, normjac::Bool=false)
+function plan_cheb2jac(::Type{BigFloat}, n::Integer, α, β; normcheb::Bool=false, normjac::Bool=false)
     plan = ccall((:ft_mpfr_plan_chebyshev_to_jacobi, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Ref{BigFloat}, Ref{BigFloat}, Clong, Int32), normcheb, normjac, n, α, β, precision(BigFloat), Base.MPFR.ROUNDING_MODE[])
     return FTPlan{BigFloat, 1, CHEB2JAC}(plan, n)
 end
 
-function plan_ultra2cheb(::Type{BigFloat}, n::Integer, λ::BigFloat; normultra::Bool=false, normcheb::Bool=false)
+function plan_ultra2cheb(::Type{BigFloat}, n::Integer, λ; normultra::Bool=false, normcheb::Bool=false)
     plan = ccall((:ft_mpfr_plan_ultraspherical_to_chebyshev, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Ref{BigFloat}, Clong, Int32), normultra, normcheb, n, λ, precision(BigFloat), Base.MPFR.ROUNDING_MODE[])
     return FTPlan{BigFloat, 1, ULTRA2CHEB}(plan, n)
 end
 
-function plan_cheb2ultra(::Type{BigFloat}, n::Integer, λ::BigFloat; normcheb::Bool=false, normultra::Bool=false)
+function plan_cheb2ultra(::Type{BigFloat}, n::Integer, λ; normcheb::Bool=false, normultra::Bool=false)
     plan = ccall((:ft_mpfr_plan_chebyshev_to_ultraspherical, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint, Ref{BigFloat}, Clong, Int32), normcheb, normultra, n, λ, precision(BigFloat), Base.MPFR.ROUNDING_MODE[])
     return FTPlan{BigFloat, 1, CHEB2ULTRA}(plan, n)
 end
@@ -415,12 +416,12 @@ function plan_disk2cxf(::Type{Float64}, n::Integer)
     return FTPlan{Float64, 2, DISK}(plan, n)
 end
 
-function plan_tri2cheb(::Type{Float64}, n::Integer, α::Float64, β::Float64, γ::Float64)
+function plan_tri2cheb(::Type{Float64}, n::Integer, α, β, γ)
     plan = ccall((:ft_plan_tri2cheb, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Float64, Float64, Float64), n, α, β, γ)
     return FTPlan{Float64, 2, TRIANGLE}(plan, n)
 end
 
-function plan_tet2cheb(::Type{Float64}, n::Integer, α::Float64, β::Float64, γ::Float64, δ::Float64)
+function plan_tet2cheb(::Type{Float64}, n::Integer, α, β, γ, δ)
     plan = ccall((:ft_plan_tet2cheb, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Float64, Float64, Float64, Float64), n, α, β, γ, δ)
     return FTPlan{Float64, 3, TETRAHEDRON}(plan, n)
 end
@@ -435,6 +436,7 @@ for (fJ, fC, fE, K) in ((:plan_sph_synthesis, :ft_plan_sph_synthesis, :ft_execut
                     (:plan_tri_analysis, :ft_plan_tri_analysis, :ft_execute_tri_analysis, TRIANGLEANALYSIS))
     @eval begin
         $fJ(x::Matrix{T}) where T = $fJ(T, size(x, 1), size(x, 2))
+        $fJ(::Type{Complex{T}}, x...) where T <: Real = $fJ(T, x...)
         function $fJ(::Type{Float64}, n::Integer, m::Integer)
             plan = ccall(($(string(fC)), libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint), n, m)
             return FTPlan{Float64, 2, $K}(plan, n, m)
@@ -450,6 +452,7 @@ for (fJ, fC, fE, K) in ((:plan_sph_synthesis, :ft_plan_sph_synthesis, :ft_execut
 end
 
 plan_tet_synthesis(x::Array{T, 3}) where T = plan_tet_synthesis(T, size(x, 1), size(x, 2), size(x, 3))
+plan_tet_synthesis(::Type{Complex{T}}, x...) where T <: Real = plan_tet_synthesis(T, x...)
 
 function plan_tet_synthesis(::Type{Float64}, n::Integer, l::Integer, m::Integer)
     plan = ccall((:ft_plan_tet_synthesis, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint), n, l, m)
@@ -465,6 +468,7 @@ function lmul!(p::FTPlan{Float64, 3, TETRAHEDRONSYNTHESIS}, x::Array{Float64, 3}
 end
 
 plan_tet_analysis(x::Array{T, 3}) where T = plan_tet_analysis(T, size(x, 1), size(x, 2), size(x, 3))
+plan_tet_analysis(::Type{Complex{T}}, x...) where T <: Real = plan_tet_analysis(T, x...)
 
 function plan_tet_analysis(::Type{Float64}, n::Integer, l::Integer, m::Integer)
     plan = ccall((:ft_plan_tet_analysis, libfasttransforms), Ptr{ft_plan_struct}, (Cint, Cint, Cint), n, l, m)
@@ -620,4 +624,28 @@ function ldiv!(p::FTPlan{Float64, 3, TETRAHEDRON}, x::Array{Float64, 3})
     checksize(p, x)
     ccall((:ft_execute_cheb2tet, libfasttransforms), Cvoid, (Ptr{ft_plan_struct}, Ptr{Float64}, Cint, Cint, Cint), p, x, size(x, 1), size(x, 2), size(x, 3))
     return x
+end
+
+*(p::FTPlan{T}, x::Array{Complex{T}}) where T = lmul!(p, deepcopy(x))
+*(p::AdjointFTPlan{T}, x::Array{Complex{T}}) where T = lmul!(p, deepcopy(x))
+*(p::TransposeFTPlan{T}, x::Array{Complex{T}}) where T = lmul!(p, deepcopy(x))
+\(p::FTPlan{T}, x::Array{Complex{T}}) where T = ldiv!(p, deepcopy(x))
+\(p::AdjointFTPlan{T}, x::Array{Complex{T}}) where T = ldiv!(p, deepcopy(x))
+\(p::TransposeFTPlan{T}, x::Array{Complex{T}}) where T = ldiv!(p, deepcopy(x))
+
+for fJ in (:lmul!, :ldiv!)
+    @eval begin
+        function $fJ(p::FTPlan{T}, x::AbstractArray{Complex{T}}) where T
+            x .= complex.($fJ(p, real(x)), $fJ(p, imag(x)))
+            return x
+        end
+        function $fJ(p::AdjointFTPlan{T, FTPlan{T, N, K}}, x::AbstractArray{Complex{T}}) where {T, N, K}
+            x .= complex.($fJ(p, real(x)), $fJ(p, imag(x)))
+            return x
+        end
+        function $fJ(p::TransposeFTPlan{T, FTPlan{T, N, K}}, x::AbstractArray{Complex{T}}) where {T, N, K}
+            x .= complex.($fJ(p, real(x)), $fJ(p, imag(x)))
+            return x
+        end
+    end
 end
