@@ -1,6 +1,6 @@
-const libfasttransforms = joinpath(dirname(@__DIR__), "deps", "libfasttransforms")
+const libfasttransforms = find_library("libfasttransforms", [joinpath(dirname(@__DIR__), "deps")])
 
-if !(find_library(libfasttransforms) ≡ libfasttransforms)
+if libfasttransforms ≡ nothing || length(libfasttransforms) == 0
     error("FastTransforms is not properly installed. Please run Pkg.build(\"FastTransforms\") ",
           "and restart Julia.")
 end
@@ -133,6 +133,17 @@ show(io::IO, p::FTPlan{T, 3, K}) where {T, K} = print(io, "FastTransforms plan f
 function checksize(p::FTPlan{T}, x::Array{T}) where T
     if p.n != size(x, 1)
         throw(DimensionMismatch("FTPlan has dimensions $(p.n) × $(p.n), x has leading dimension $(size(x, 1))"))
+    end
+end
+
+for K in (SPHERE, SPHEREV, DISK)
+    @eval function checksize(p::FTPlan{T, 2, $K}, x::Matrix{T}) where T
+        if p.n != size(x, 1)
+            throw(DimensionMismatch("FTPlan has dimensions $(p.n) × $(p.n), x has leading dimension $(size(x, 1))"))
+        end
+        if iseven(size(x, 2))
+            throw(DimensionMismatch("This FTPlan only operates on arrays with an odd number of columns."))
+        end
     end
 end
 
